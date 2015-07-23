@@ -7,7 +7,7 @@ public:
     Pdf3d();
     virtual ~Pdf3d();
 
-    bool createAdvancedPdf( const char *filepdf, const char *fileprc, const char *filejs );
+    bool createAdvancedPdf( const char *filepdf, const char *fileprc, const char *filejs, bool bUseCenter, float cenx, float ceny, float cenz );
 
 protected:
     float _rcleft, _rctop, _rcwidth, _rcheight;

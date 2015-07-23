@@ -37,7 +37,7 @@ Pdf3d::~Pdf3d()
 {
 }
 
-bool Pdf3d::createAdvancedPdf( const char *filepdf, const char *fileprc, const char *filejs )
+bool Pdf3d::createAdvancedPdf( const char *filepdf, const char *fileprc, const char *filejs, bool bUseCenter, float cenx, float ceny, float cenz )
 {
     HPDF_Rect rect = {_rcleft, _rctop, _rcwidth, _rcheight};
   
@@ -65,15 +65,15 @@ bool Pdf3d::createAdvancedPdf( const char *filepdf, const char *fileprc, const c
     HPDF_Page_SetWidth (page, _rcwidth);
     HPDF_Page_SetHeight (page, _rcheight);
 
-    HPDF_Dict js = NULL;
-    js = HPDF_DictStream_New (pdf->mmgr, pdf->xref);
-    js->header.obj_class |= HPDF_OSUBCLASS_XOBJECT;
-    js->filter = HPDF_STREAM_FILTER_NONE;
-    js = HPDF_LoadJSFromFile  (pdf, filejs);
+    //HPDF_Dict js = NULL;  SALVA
+    //js = HPDF_DictStream_New (pdf->mmgr, pdf->xref);
+    //js->header.obj_class |= HPDF_OSUBCLASS_XOBJECT;
+    //js->filter = HPDF_STREAM_FILTER_NONE;
+    //js = HPDF_LoadJSFromFile  (pdf, filejs);
     u3d = HPDF_LoadU3DFromFile (pdf, fileprc);
 
     // add javeascript  action
-    HPDF_Dict_Add (u3d, "OnInstantiate", js);
+    //HPDF_Dict_Add (u3d, "OnInstantiate", js);  SALVA
 
 #define NS2VIEWS 7
     HPDF_Dict views[NS2VIEWS+1];
@@ -100,10 +100,17 @@ bool Pdf3d::createAdvancedPdf( const char *filepdf, const char *fileprc, const c
     pr.z = 0;
 
     // camera focus point
-    XYZ focus;
-    focus.x = 0;
-    focus.y = 0;
-    focus.z = 0;
+    //XYZ focus;
+    //focus.x = 0;
+    //focus.y = 0;
+    //focus.z = 0;
+
+    if (bUseCenter)
+    {
+        pr.x = cenx;
+        pr.y = ceny;
+        pr.z = cenz;
+    }
 
     float camrot = 5.0;
 
@@ -111,7 +118,7 @@ bool Pdf3d::createAdvancedPdf( const char *filepdf, const char *fileprc, const c
     for (int iv = 0; iv < NS2VIEWS; iv++) 
     {
         views[iv] = HPDF_Create3DView(u3d->mmgr, view_names[iv]);
-        HPDF_3DView_SetCamera(views[iv], 0., 0., 0., 
+        HPDF_3DView_SetCamera(views[iv], pr.x, pr.y, pr.z, 
               view_c2c[iv][0], view_c2c[iv][1], view_c2c[iv][2],
               camrot, view_roll[iv]);
         HPDF_3DView_SetPerspectiveProjection(views[iv], 45.0);
@@ -123,7 +130,7 @@ bool Pdf3d::createAdvancedPdf( const char *filepdf, const char *fileprc, const c
 
     // add a psuedo-orthographic for slicing (actually perspective with point at infinity)
     views[NS2VIEWS] = HPDF_Create3DView(u3d->mmgr, "Orthgraphic slicing view");
-    HPDF_3DView_SetCamera(views[NS2VIEWS], 0., 0., 0., 
+    HPDF_3DView_SetCamera(views[NS2VIEWS], pr.x, pr.y, pr.z, 
             view_c2c[0][0], view_c2c[0][1], view_c2c[0][2],
             camrot*82.70f, view_roll[0]);
     HPDF_3DView_SetPerspectiveProjection(views[NS2VIEWS], 0.3333f);

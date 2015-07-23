@@ -15,7 +15,7 @@ int runTriStrip( int argc, char** argv );
 int runTriStripMulti( int argc, char** argv );
 int runTriQuad( int argc, char** argv );
 
-void createPdf( const std::string &pdffile, const std::string &prcfile, const std::string &jsfile );
+void createPdf( const std::string &pdffile, const std::string &prcfile, const std::string &jsfile, bool bUseCenter, float cenx, float ceny, float cenz );
 
 void createPrcAQuad( const std::string &prcfile );
 void createPrcQuad( const std::string &prcfile );
@@ -35,20 +35,20 @@ int main( int argc, char** argv )
 {
     int ret;
 
-    ret = runAQuad( argc, argv );
-    if (ret >= 0) return( ret );
+    //ret = runAQuad( argc, argv );
+    //if (ret >= 0) return( ret );
 
-    ret = runQuad( argc, argv );
-    if (ret >= 0) return( ret );
+    //ret = runQuad( argc, argv );
+    //if (ret >= 0) return( ret );
 
-    ret = runTriStrip( argc, argv );
-    if (ret >= 0) return( ret );
+    //ret = runTriStrip( argc, argv );
+    //if (ret >= 0) return( ret );
 
-    ret = runTriStripMulti( argc, argv );
-    if (ret >= 0) return( ret );
+    //ret = runTriStripMulti( argc, argv );
+    //if (ret >= 0) return( ret );
 
-    ret = runTriQuad( argc, argv );
-    if (ret >= 0) return( ret );
+    //ret = runTriQuad( argc, argv );
+    //if (ret >= 0) return( ret );
 
     ret = runBasic( argc, argv );
 
@@ -73,66 +73,74 @@ bool hasCmd( const char *cmd, int argc, char** argv )
 
 void outCmdErr()
 {
-    std::cerr << "prctopdf <pdfjsfile>" << std::endl;
-    std::cerr << "prctopdf <pdfoutfile> <pdfjsfile>" << std::endl;
+    //std::cerr << "prctopdf <pdfjsfile>" << std::endl;
+    //std::cerr << "prctopdf <pdfoutfile> <pdfjsfile>" << std::endl;
     std::cerr << "prctopdf <prcinfile> <pdfoutfile> <pdfjsfile>" << std::endl;
 }
 
 int runBasic( int argc, char** argv )
 {
-    if( argc < 2 || argc > 4 )
-    {
-        return - 1;
-    }
+    //if( argc < 2 || argc > 4 )
+    //{
+    //    return - 1;
+    //}
 
     std::string prcfile;
     std::string pdffile;
     std::string jsfile; 
 
-    if( argc == 2 )
-    {
-        prcfile = "test.prc";
-        pdffile ="test.pdf";
-        jsfile =argv[ 1 ];   
-        createPrcTest( prcfile );
-    }
-    else if( argc == 3 )
-    {
-        prcfile = "test.prc";
-        pdffile = argv[ 1 ];
-        jsfile = argv[ 2 ]; 
-        createPrcTest( prcfile );
-    }
-    else if( argc == 4 )
+    //if( argc == 2 )
+    //{
+    //    prcfile = "test.prc";
+    //    pdffile ="test.pdf";
+    //    jsfile =argv[ 1 ];   
+    //    createPrcTest( prcfile );
+    //}
+    //else if( argc == 3 )
+    //{
+    //    prcfile = "test.prc";
+    //    pdffile = argv[ 1 ];
+    //    jsfile = argv[ 2 ]; 
+    //    createPrcTest( prcfile );
+    //}
+    //else if( argc == 4 )
     {
         prcfile = argv[ 1 ];
         pdffile = argv[ 2 ];
         jsfile = argv[ 3 ]; 
     }
 
-    createPdf( pdffile.c_str(), prcfile.c_str(), jsfile.c_str() );
+    float cenx=0.0, ceny=0.0, cenz=0.0;
+    if (argc > 4)
+    {
+        sscanf(argv[4], "%f", &cenx);
+        sscanf(argv[5], "%f", &ceny);
+        sscanf(argv[6], "%f", &cenz);
+    }
+
+    createPdf( pdffile.c_str(), prcfile.c_str(), jsfile.c_str(), (argc>4), cenx, ceny, cenz );
 
     return( 0 );
 }
 
-int runAQuad( int argc, char** argv )
-{
-    if (!hasCmd( "-aquad", argc, argv )) return -1;
-
-    if( argc != 5 )
-    {
-        outCmdErr();
-        return 1;
-    }
-
-    std::string prcfile( argv[2] );
-    std::string pdffile( argv[3] );
-    std::string jsfile( argv[4] ); 
-
-    createPrcAQuad( prcfile );
-    createPdf( pdffile.c_str(), prcfile.c_str(), jsfile.c_str() );
-    return 0;
-}
+//int runAQuad( int argc, char** argv )
+//{
+//    if (!hasCmd( "-aquad", argc, argv )) return -1;
+//
+//    if( argc != 5 )
+//    {
+//        outCmdErr();
+//        return 1;
+//    }
+//
+//    std::string prcfile( argv[2] );
+//    std::string pdffile( argv[3] );
+//    std::string jsfile( argv[4] ); 
+//
+//    createPrcAQuad( prcfile );
+//    createPdf( pdffile.c_str(), prcfile.c_str(), jsfile.c_str() );
+//    return 0;
+//}
 
 void createPrcAQuad( const std::string &prcfile )
 {
@@ -246,24 +254,24 @@ void createPrcAQuad( const std::string &prcfile )
     */
 }
 
-int runQuad( int argc, char** argv )
-{
-    if (!hasCmd( "-quad", argc, argv )) return -1; // not applicable
-
-    if( argc != 5 )
-    {
-        outCmdErr();
-        return 1; // error
-    }
-
-    std::string prcfile( argv[2] );
-    std::string pdffile( argv[3] );
-    std::string jsfile( argv[4] ); 
-
-    createPrcQuad( prcfile );
-    createPdf( pdffile.c_str(), prcfile.c_str(), jsfile.c_str() );
-    return 0; // success
-}
+//int runQuad( int argc, char** argv )
+//{
+//    if (!hasCmd( "-quad", argc, argv )) return -1; // not applicable
+//
+//    if( argc != 5 )
+//    {
+//        outCmdErr();
+//        return 1; // error
+//    }
+//
+//    std::string prcfile( argv[2] );
+//    std::string pdffile( argv[3] );
+//    std::string jsfile( argv[4] ); 
+//
+//    createPrcQuad( prcfile );
+//    createPdf( pdffile.c_str(), prcfile.c_str(), jsfile.c_str() );
+//    return 0; // success
+//}
 
 void createPrcQuad( const std::string &prcfile )
 {
@@ -405,24 +413,24 @@ void createPrcQuad( const std::string &prcfile )
     */
 }
 
-int runTriStrip( int argc, char** argv )
-{
-    if (!hasCmd( "-tristrip", argc, argv )) return -1; // not applicable
-
-    if( argc != 5 )
-    {
-        outCmdErr();
-        return 1; // error
-    }
-
-    std::string prcfile( argv[2] );
-    std::string pdffile( argv[3] );
-    std::string jsfile( argv[4] ); 
-
-    createPrcTriStrip( prcfile );
-    createPdf( pdffile.c_str(), prcfile.c_str(), jsfile.c_str() );
-    return 0; // success
-}
+//int runTriStrip( int argc, char** argv )
+//{
+//    if (!hasCmd( "-tristrip", argc, argv )) return -1; // not applicable
+//
+//    if( argc != 5 )
+//    {
+//        outCmdErr();
+//        return 1; // error
+//    }
+//
+//    std::string prcfile( argv[2] );
+//    std::string pdffile( argv[3] );
+//    std::string jsfile( argv[4] ); 
+//
+//    createPrcTriStrip( prcfile );
+//    createPdf( pdffile.c_str(), prcfile.c_str(), jsfile.c_str() );
+//    return 0; // success
+//}
 
 void createPrcTriStrip( const std::string &prcfile )
 {
@@ -507,24 +515,24 @@ void createPrcTriStrip( const std::string &prcfile )
     file.finish();
 }
 
-int runTriStripMulti( int argc, char** argv )
-{
-    if (!hasCmd( "-tristripm", argc, argv )) return -1; // not applicable
-
-    if( argc != 5 )
-    {
-        outCmdErr();
-        return 1; // error
-    }
-
-    std::string prcfile( argv[2] );
-    std::string pdffile( argv[3] );
-    std::string jsfile( argv[4] ); 
-
-    createPrcTriStripMulti( prcfile );
-    createPdf( pdffile.c_str(), prcfile.c_str(), jsfile.c_str() );
-    return 0; // success
-}
+//int runTriStripMulti( int argc, char** argv )
+//{
+//    if (!hasCmd( "-tristripm", argc, argv )) return -1; // not applicable
+//
+//    if( argc != 5 )
+//    {
+//        outCmdErr();
+//        return 1; // error
+//    }
+//
+//    std::string prcfile( argv[2] );
+//    std::string pdffile( argv[3] );
+//    std::string jsfile( argv[4] ); 
+//
+//    createPrcTriStripMulti( prcfile );
+//    createPdf( pdffile.c_str(), prcfile.c_str(), jsfile.c_str() );
+//    return 0; // success
+//}
 
 void createPrcTriStripMulti( const std::string &prcfile )
 {
@@ -642,24 +650,24 @@ void createPrcTriStripMulti( const std::string &prcfile )
 }
 
 
-int runTriQuad( int argc, char** argv )
-{
-    if (!hasCmd( "-triquad", argc, argv )) return -1; // not applicable
-
-    if( argc != 5 )
-    {
-        outCmdErr();
-        return 1; // error
-    }
-
-    std::string prcfile( argv[2] );
-    std::string pdffile( argv[3] );
-    std::string jsfile( argv[4] ); 
-
-    createPrcTriQuad( prcfile );
-    createPdf( pdffile.c_str(), prcfile.c_str(), jsfile.c_str() );
-    return 0; // success
-}
+//int runTriQuad( int argc, char** argv )
+//{
+//    if (!hasCmd( "-triquad", argc, argv )) return -1; // not applicable
+//
+//    if( argc != 5 )
+//    {
+//        outCmdErr();
+//        return 1; // error
+//    }
+//
+//    std::string prcfile( argv[2] );
+//    std::string pdffile( argv[3] );
+//    std::string jsfile( argv[4] ); 
+//
+//    createPrcTriQuad( prcfile );
+//    createPdf( pdffile.c_str(), prcfile.c_str(), jsfile.c_str() );
+//    return 0; // success
+//}
 
 void createPrcTriQuad( const std::string &prcfile )
 {
@@ -1720,8 +1728,8 @@ void createPrcTest(const std::string &prcfile)
     delete[] picture4;
 }
 
-void createPdf( const std::string &pdffile, const std::string &prcfile, const std::string &jsfile )
+void createPdf( const std::string &pdffile, const std::string &prcfile, const std::string &jsfile, bool bUseCenter, float cenx, float ceny, float cenz )
 {
     Pdf3d pdf;
-    pdf.createAdvancedPdf( pdffile.c_str(), prcfile.c_str(), jsfile.c_str() );
+    pdf.createAdvancedPdf( pdffile.c_str(), prcfile.c_str(), jsfile.c_str(), bUseCenter, cenx, ceny, cenz );
 }
