@@ -17,6 +17,8 @@ OSG2PRC::OSG2PRC()
 
     pushNodeAlpha();
     setNodeAlpha( 1.f );
+
+    _logger = NULL;//fopen("e:\\3DPublisher\\osg2prc.log", "wt");
 }
 
 #ifdef PRC_USE_ASYMPTOTE
@@ -28,6 +30,8 @@ OSG2PRC::OSG2PRC( oPRCFile* prcFile )
 
     pushNodeAlpha();
     setNodeAlpha( 1.f );
+
+    _logger = NULL; //fopen("e:\\3DPublisher\\osg2prc.log", "wt");
 }
 #endif
 
@@ -97,31 +101,65 @@ void OSG2PRC::pushMaterial()
         _materialStack[ _materialStack.size() - 1 ] =
             _materialStack[ _materialStack.size() - 2 ];
     }
+    _textureStack.resize( _textureStack.size() + 1 );
+    if( _textureStack.size() > 1 )
+    {
+        // Copy old top of stack to current top of stack.
+        _textureStack[ _textureStack.size() - 1 ] =
+            _textureStack[ _textureStack.size() - 2 ];
+    }
+
+    //if (_logger!=NULL) 
+    //{ fprintf(_logger, "    stack sizes. Material %d Texture %d\n", _materialStack.size(), _textureStack.size());     fflush(_logger);}
 }
 bool OSG2PRC::popMaterial()
 {
     if( _materialStack.size() > 0 )
     {
         _materialStack.resize( _materialStack.size() - 1 );
+        _textureStack.resize( _textureStack.size() - 1 );
+        //if (_logger!=NULL) 
+        //{ fprintf(_logger, "    stack sizes. Material %d Texture %d\n", _materialStack.size(), _textureStack.size());     fflush(_logger);}
         return( true );
     }
     return( false );
 }
+
 void OSG2PRC::setMaterial( const osg::Material* mat )
 {
     if( _materialStack.size() > 0 )
         _materialStack[ _materialStack.size() - 1 ] = mat;
 }
+
+void OSG2PRC::setTexture( const osg::Texture2D* tex )
+{
+    //if( _textureStack.size() > 0 )
+        _textureStack[ _textureStack.size() - 1 ] = tex;
+
+    if (_logger!=NULL) 
+    { fprintf(_logger, "   set texture to stack index %d\n", _textureStack.size() - 1 );     fflush(_logger);}
+}
+
 const osg::Material* OSG2PRC::getMaterial() const
 {
-    if( _materialStack.size() > 0 )
+    if( _materialStack.size() > 0 && _materialStack[ _materialStack.size() - 1 ].get() != NULL)
         return( _materialStack[ _materialStack.size() - 1 ].get() );
+    
+    return( new osg::Material() );
+}
+
+const osg::Texture2D* OSG2PRC::getTexture() const
+{
+    if( _textureStack.size() > 0 )
+        return( _textureStack[ _textureStack.size() - 1 ].get() );
     else
         return( NULL );
 }
+
 void OSG2PRC::addDefaultMaterial()
 {
     _materialStack.push_back( new osg::Material() );
+    _textureStack.push_back( NULL );
 }
 
 void OSG2PRC::pushNodeAlpha()
@@ -171,12 +209,61 @@ bool OSG2PRC::checkNodeAlpha( float& alpha, const osg::Node* node )
     return( false );
 }
 
-uint32_t OSG2PRC::getStyle( const osg::Material* mat, const float alpha )
+uint32_t OSG2PRC::getStyle( const osg::Material* mat, const osg::Texture2D* tex, const float alpha )
 {
     StyleAlphaKey key( mat, alpha );
     StyleAlphaMap::iterator it( _styleAlphaMap.find( key ) );
     if( it != _styleAlphaMap.end() )
         return( it->second );
+
+    if (_logger!=NULL) 
+    { fputs("Getting Style\n", _logger);     fflush(_logger);}
+
+    // texture/picture data
+    const uint8_t* pic=NULL;
+    EPRCPictureDataFormat picf=KEPRCPicture_BITMAP_RGB_BYTE;
+    uint32_t picw=0, pich=0, pics=0;
+    bool picreplace=true, picrepeat=true;
+    if (tex != NULL)
+    {
+        if (_logger!=NULL) 
+        { fputs("  Getting texture data\n", _logger);
+        fflush(_logger); }
+        const osg::Image* image = tex->getImage();
+        bool bValidTexture = true;
+        if (image == NULL)
+        {
+            bValidTexture = false;
+            if (_logger!=NULL) 
+            { fputs("  Null image\n", _logger);
+            fflush(_logger); }
+        }
+        else
+        {
+            if (image->getInternalTextureFormat() == GL_RGB)
+                picf=KEPRCPicture_BITMAP_RGB_BYTE;
+            else if (image->getInternalTextureFormat() == GL_RGBA)
+                picf=KEPRCPicture_BITMAP_RGBA_BYTE;
+            else
+            {
+                if (_logger!=NULL) 
+                {fputs("  Unsupported image type\n", _logger);
+                fflush(_logger); }
+                bValidTexture = false;
+            }
+        }
+
+        if (bValidTexture)
+        {
+            pic = (uint8_t*)image->getDataPointer();
+            picw = (uint32_t)image->s();
+            pich = (uint32_t)image->t();
+            // do not specify picture size (pics), it will be calculated internally
+            if (_logger!=NULL) 
+            {  fprintf(_logger, "   Defined image %d %d\n", picw, pich);
+            fflush(_logger); }
+        }
+    }
 
     const osg::Material::Face face( osg::Material::FRONT );
     PRCmaterial m( colorToPRC( mat->getAmbient( face ) ),
@@ -184,7 +271,8 @@ uint32_t OSG2PRC::getStyle( const osg::Material* mat, const float alpha )
         colorToPRC( mat->getEmission( face ) ),
         colorToPRC( mat->getSpecular( face ) ),
         alpha,
-        (double)( mat->getShininess( face ) ) );
+        (double)( mat->getShininess( face ) ) ,
+        pic, picf, picw, pich, pics, picreplace, picrepeat);
 
     const uint32_t style = _prcFile->addMaterial( m );
     _styleAlphaMap[ key ] = style;
@@ -197,11 +285,34 @@ void OSG2PRC::apply( const osg::StateSet* stateSet )
 {
     //std::cout << "Found osg::StateSet" << std::endl;
 
+    if (_logger!=NULL) 
+    { fputs("Apply StateSet\n", _logger);     fflush(_logger);}
+
     const osg::StateAttribute* sa( stateSet->getAttribute( osg::StateAttribute::MATERIAL ) );
     if( sa != NULL )
     {
         const osg::Material* mat( static_cast< const osg::Material* >( sa ) );
         setMaterial( mat );
+        if (_logger!=NULL) 
+        { fputs("set material\n", _logger);     fflush(_logger);}
+    }
+
+    sa =  stateSet->getTextureAttribute(0, osg::StateAttribute::TEXTURE );
+    if( sa != NULL )
+    {
+        if (_logger!=NULL) 
+        { fputs("Found texture attribute\n", _logger);     fflush(_logger);}
+        const osg::Texture2D* texture( dynamic_cast< const osg::Texture2D* >(sa->asTexture()));
+        setTexture( texture );
+
+        const osg::Image* image = texture->getImage();
+
+        if (_logger!=NULL) 
+        {  fprintf(_logger, "   Passed image %d %d\n", image->s(), image->t());
+        fflush(_logger); }
+
+        if (_logger!=NULL) 
+        { fputs((texture==NULL? "set NULL texture\n": "set valid texture\n"), _logger);     fflush(_logger);}
     }
 }
 void OSG2PRC::apply( const osg::Geometry* geom )
@@ -290,7 +401,7 @@ void OSG2PRC::apply( const osg::Geometry* geom )
 
     // add the tess mesh then use it
     const uint32_t tess_index = _prcFile->add3DTess( tess );
-    uint32_t styleIndex( getStyle( getMaterial(), getNodeAlpha() ) );
+    uint32_t styleIndex( getStyle( getMaterial(), getTexture(), getNodeAlpha() ) );
     _prcFile->useMesh( tess_index, styleIndex );
 }
 void OSG2PRC::apply( const osg::PrimitiveSet* ps, PRC3DTess* tess, PRCTessFace *tessFace, const osg::Geometry* geom )
@@ -400,6 +511,39 @@ PRC3DTess* OSG2PRC::createTess( const osg::Geometry* geom )
         }
     }
     */
+    array = geom->getTexCoordArray(0);
+    if( array != NULL )
+    {
+        if (_logger!=NULL) 
+        { fprintf(_logger, "Create tess with texture coords\n");     fflush(_logger);}
+
+        if( array->getType() != osg::Array::Vec2ArrayType)
+        {
+            std::cerr << "TexCoord: Unsupported array type." << std::endl;
+            //delete tess;
+            //return NULL;
+        }
+        else
+        {
+            const osg::Vec2Array* texcoords( static_cast< const osg::Vec2Array* >( array ) );
+            //std::cout << "Adding texcoord array to PRC, size " << array->getNumElements() << std::endl;
+
+            if (texcoords->size() == vertices->size() )
+            {
+                if (_logger!=NULL) 
+                { fprintf(_logger, "    copying %d texture coords\n", texcoords->size());     fflush(_logger);}
+
+                tess->texture_coordinate.reserve( texcoords->size()*2 );
+                for( uint32_t i=0; i<texcoords->size(); i++ )
+                {
+                    const osg::Vec2& tc( texcoords->at( i ) );
+                    tess->texture_coordinate.push_back(tc.x());
+                    tess->texture_coordinate.push_back(tc.y());
+                }
+            }
+        }
+    }
+
     return tess;
 }
 

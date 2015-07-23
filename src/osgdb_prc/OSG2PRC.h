@@ -3,6 +3,9 @@
 #define __OSG_2_PRC_H__ 1
 
 #include <osg/NodeVisitor>
+#include <osg/Texture2D>
+
+#define PRC_USE_ASYMPTOTE
 
 #ifdef PRC_USE_ASYMPTOTE
 #  include <oPRCFile.h>
@@ -82,6 +85,7 @@ public:
     virtual void apply( osg::Geode& geode );
 
 protected:
+    FILE* _logger;
     void apply( const osg::StateSet* stateSet );
 
     void processNewNode( const std::string& name );
@@ -100,10 +104,14 @@ protected:
 
     typedef std::vector< osg::ref_ptr< const osg::Material > > MaterialStack;
     MaterialStack _materialStack;
+    typedef std::vector< osg::ref_ptr< const osg::Texture2D > > TextureStack;
+    TextureStack _textureStack;
     void pushMaterial();
     bool popMaterial();
     void setMaterial( const osg::Material* mat );
+    void setTexture( const osg::Texture2D* tex );
     const osg::Material* getMaterial() const;
+    const osg::Texture2D* getTexture() const;
     void addDefaultMaterial();
 
     typedef std::vector< float > AlphaStack;
@@ -117,7 +125,7 @@ protected:
     typedef std::pair< const osg::Material*, float > StyleAlphaKey;
     typedef std::map< StyleAlphaKey, uint32_t > StyleAlphaMap;
     StyleAlphaMap _styleAlphaMap;
-    uint32_t getStyle( const osg::Material* mat, const float alpha );
+    uint32_t getStyle( const osg::Material* mat, const osg::Texture2D* tex, const float alpha );
 
     void processNodeAlpha( const osg::Node* node );
 
